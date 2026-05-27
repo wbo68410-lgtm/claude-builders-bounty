@@ -29,6 +29,14 @@ Review a saved diff:
 ./claude-review --diff-file pr.diff
 ```
 
+## GitHub Action
+
+The included `.github/workflows/claude-review.yml` workflow can post the same structured review as a PR comment:
+
+1. Copy `.github/workflows/claude-review.yml`, `claude-review`, and `tools/claude_review/` into a repository.
+2. Open or update a pull request.
+3. The workflow runs `claude-review --pr <url> --output review.md` and posts the Markdown comment with `GITHUB_TOKEN`.
+
 ## Output Format
 
 The generated Markdown includes:
