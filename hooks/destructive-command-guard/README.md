@@ -46,7 +46,7 @@ Blocked attempts are appended to `~/.claude/hooks/blocked.log` as JSON lines wit
 
 ## Behavior
 
-The hook reads Claude Code hook JSON from stdin. It allows non-Bash tools and normal Bash commands with exit code `0`. When it detects a destructive command, it writes a clear explanation to stderr and exits with code `2`, which blocks the `PreToolUse` call.
+The hook reads Claude Code hook JSON from stdin. It allows non-Bash tools and normal Bash commands with exit code `0`. When it detects a destructive command, it logs the attempt and returns a structured `PreToolUse` JSON response with `permissionDecision` set to `deny`, which blocks the tool call and shows the reason in Claude Code.
 
 ## Test
 
@@ -60,4 +60,4 @@ Sample blocked hook input:
 printf '%s\n' '{"tool_name":"Bash","cwd":"/repo","tool_input":{"command":"rm -rf dist"}}' | python3 destructive_command_guard.py
 ```
 
-Expected result: exit code `2`, a clear block message on stderr, and one JSON line in `~/.claude/hooks/blocked.log`.
+Expected result: exit code `0`, a JSON deny response on stdout, and one JSON line in `~/.claude/hooks/blocked.log`.

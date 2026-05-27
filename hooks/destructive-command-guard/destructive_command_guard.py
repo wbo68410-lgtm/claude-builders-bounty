@@ -113,6 +113,20 @@ def _log_block(command: str, cwd: str | None, reason: str) -> None:
         handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
+def _deny_payload(reason: str) -> dict[str, Any]:
+    message = (
+        f"Blocked by destructive-command-guard: {reason} "
+        "Choose a safer command, add constraints, or ask the user for explicit confirmation."
+    )
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": message,
+        }
+    }
+
+
 def run_hook() -> int:
     payload = _read_hook_input()
     if payload.get("tool_name") != "Bash":
@@ -129,12 +143,8 @@ def run_hook() -> int:
 
     cwd = payload.get("cwd")
     _log_block(command, cwd if isinstance(cwd, str) else None, reason)
-    print(
-        "Blocked by destructive-command-guard: "
-        f"{reason} Choose a safer command, add constraints, or ask the user for explicit confirmation.",
-        file=sys.stderr,
-    )
-    return 2
+    print(json.dumps(_deny_payload(reason), ensure_ascii=False))
+    return 0
 
 
 def install_hook() -> int:
@@ -193,6 +203,15 @@ def self_test() -> int:
     for command in blocked:
         if not _block_reason(command):
             failures.append(f"should block: {command}")
+
+    deny = _deny_payload("test reason")
+    hook_output = deny.get("hookSpecificOutput", {})
+    if hook_output.get("hookEventName") != "PreToolUse":
+        failures.append("deny payload should target PreToolUse")
+    if hook_output.get("permissionDecision") != "deny":
+        failures.append("deny payload should deny permission")
+    if "test reason" not in hook_output.get("permissionDecisionReason", ""):
+        failures.append("deny payload should explain the block reason")
 
     if failures:
         print("\n".join(failures), file=sys.stderr)
